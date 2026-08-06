@@ -1,6 +1,7 @@
-import { AlertTriangle, ArrowDownRight, Boxes, CalendarDays, FileSpreadsheet, Wallet } from 'lucide-react';
+import { AlertTriangle, ArrowDownRight, Boxes, FileSpreadsheet, Wallet } from 'lucide-react';
+import { useState } from 'react';
 import type { DebtLedger } from '../types';
-import { getGroupedRows, getLedgerTotal, getProductCount, getProductTotals, getMonthlyTrend } from '../lib/analytics';
+import { getGroupedRows, getLedgerTotal, getProductCount, getProductTotals, getTrend, type TrendGranularity } from '../lib/analytics';
 import { formatCompactCurrency, formatCurrency, formatPercent } from '../lib/format';
 import { AnimatedNumber } from './AnimatedNumber';
 import { DebtTable } from './DebtTable';
@@ -11,8 +12,9 @@ import { TrendChart } from './TrendChart';
 type OverviewViewProps = { ledger: DebtLedger };
 
 export function OverviewView({ ledger }: OverviewViewProps) {
+  const [granularity, setGranularity] = useState<TrendGranularity>('day');
   const total = getLedgerTotal(ledger);
-  const monthly = getMonthlyTrend(ledger);
+  const trend = getTrend(ledger, granularity);
   const products = getProductTotals(ledger);
   const groups = getGroupedRows(ledger);
 
@@ -30,17 +32,17 @@ export function OverviewView({ ledger }: OverviewViewProps) {
       </Reveal>
 
       <Reveal className="summary-strip" delay={0.05}>
-        <div className="summary-item"><span className="summary-icon blue"><FileSpreadsheet size={16} /></span><div><strong>{ledger.rows.length}</strong><span>条明细</span></div></div>
-        <div className="summary-item"><span className="summary-icon mint"><Boxes size={16} /></span><div><strong>{getProductCount(ledger)}</strong><span>种产品</span></div></div>
-        <div className="summary-item"><span className="summary-icon amber"><CalendarDays size={16} /></span><div><strong>{monthly.length}</strong><span>个统计月份</span></div></div>
-        <div className="summary-item"><span className="summary-icon violet"><Wallet size={16} /></span><div><strong>{ledger.balance === null ? '—' : formatCurrency(ledger.balance)}</strong><span>表格余欠</span></div></div>
+        <div className="summary-item"><span className="summary-icon blue"><FileSpreadsheet size={16} /></span><div><strong>{formatCurrency(total)}</strong><span>明细合计 · {ledger.rows.length} 条</span></div></div>
+        <div className="summary-item"><span className="summary-icon violet"><Wallet size={16} /></span><div><strong>{ledger.balance === null ? '—' : formatCurrency(ledger.balance)}</strong><span>表格余欠余额</span></div></div>
+        <div className="summary-item"><span className="summary-icon mint"><ArrowDownRight size={16} /></span><div><strong>{ledger.payments === 0 ? '—' : formatCurrency(ledger.payments)}</strong><span>已记录付款抵扣</span></div></div>
+        <div className="summary-item"><span className="summary-icon amber"><Boxes size={16} /></span><div><strong>{ledger.rows.length} 条 / {getProductCount(ledger)} 种</strong><span>明细 / 产品结构</span></div></div>
       </Reveal>
 
       {ledger.warnings.length > 0 && <Reveal className="quality-notice" delay={0.08}><AlertTriangle size={17} /><span>{ledger.warnings.join('；')}</span></Reveal>}
 
       <div className="section-heading"><div><span className="section-kicker">Debt signals</span><h2>欠款结构</h2></div><span className="section-caption">根据明细金额重新汇总</span></div>
       <div className="visual-grid">
-        <Reveal className="chart-panel" delay={0.1}><div className="panel-heading"><div><span className="panel-label">MONTHLY TREND</span><h3>月度欠款趋势</h3></div><span className="panel-value">{formatPercent(total === 0 ? 0 : (monthly[monthly.length - 1]?.amount ?? 0) / total)} <small>最近月份占比</small></span></div><TrendChart data={monthly} /></Reveal>
+        <Reveal className="chart-panel" delay={0.1}><div className="panel-heading"><div><span className="panel-label">{granularity === 'day' ? 'DAILY TREND' : 'MONTHLY TREND'}</span><h3>{granularity === 'day' ? '日度欠款趋势' : '月度欠款趋势'}</h3></div><div className="panel-tools"><div aria-label="趋势粒度" className="chart-mode" role="group"><button className={granularity === 'day' ? 'is-active' : ''} onClick={() => setGranularity('day')} type="button">日</button><button className={granularity === 'month' ? 'is-active' : ''} onClick={() => setGranularity('month')} type="button">月</button></div><span className="panel-value">{formatPercent(total === 0 ? 0 : (trend[trend.length - 1]?.amount ?? 0) / total)} <small>最近{granularity === 'day' ? '一笔' : '月份'}占比</small></span></div></div><TrendChart data={trend} /></Reveal>
         <Reveal className="chart-panel" delay={0.16}><div className="panel-heading"><div><span className="panel-label">PRODUCT MIX</span><h3>产品欠款构成</h3></div><span className="panel-value">{products.length} <small>产品项</small></span></div><ProductDonut data={products} /></Reveal>
       </div>
 

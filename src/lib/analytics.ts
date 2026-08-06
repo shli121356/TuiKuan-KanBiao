@@ -23,14 +23,16 @@ export type DebtGroup = {
   rows: DebtRow[];
 };
 
+export type TrendGranularity = 'day' | 'month';
+
 export function getLedgerTotal(ledger: DebtLedger): number {
   return ledger.rows.reduce((sum, row) => sum + row.totalDebt, 0);
 }
 
-export function getMonthlyTrend(ledger: DebtLedger): MonthlyPoint[] {
+export function getTrend(ledger: DebtLedger, granularity: TrendGranularity): MonthlyPoint[] {
   const totals = new Map<string, number>();
   ledger.rows.forEach((row) => {
-    const key = row.date?.slice(0, 7) ?? 'unknown';
+    const key = row.date ? (granularity === 'day' ? row.date : row.date.slice(0, 7)) : 'unknown';
     totals.set(key, (totals.get(key) ?? 0) + row.totalDebt);
   });
 
@@ -42,9 +44,13 @@ export function getMonthlyTrend(ledger: DebtLedger): MonthlyPoint[] {
     })
     .map(([key, amount]) => ({
       key,
-      label: key === 'unknown' ? '未标注日期' : key,
+      label: key === 'unknown' ? '未标注日期' : granularity === 'day' ? key.slice(5).replace('-', '.') : key,
       amount,
     }));
+}
+
+export function getMonthlyTrend(ledger: DebtLedger): MonthlyPoint[] {
+  return getTrend(ledger, 'month');
 }
 
 export function getProductTotals(ledger: DebtLedger): ProductTotal[] {

@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest';
 import type { DebtLedger } from '../types';
-import { getGroupedRows, getLedgerTotal, getMonthlyTrend, getProductCount, getProductTotals, getRankedProducts } from './analytics';
+import { getGroupedRows, getLedgerTotal, getMonthlyTrend, getProductCount, getProductTotals, getRankedProducts, getTrend } from './analytics';
 
 const ledger: DebtLedger = {
   id: 'fixture',
@@ -30,6 +30,14 @@ describe('debt analytics', () => {
       { key: '2025-01', label: '2025-01', amount: 474 },
       { key: '2025-02', label: '2025-02', amount: 50 },
     ]);
+  });
+
+  test('supports daily trend points for the default detailed view', () => {
+    expect(getTrend(ledger, 'day')).toEqual([
+      { key: '2025-01-02', label: '01.02', amount: 474 },
+      { key: '2025-02-01', label: '02.01', amount: 50 },
+    ]);
+    expect(getTrend(ledger, 'month')).toEqual(getMonthlyTrend(ledger));
   });
 
   test('aggregates products and returns ranked progress values', () => {
