@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, type ChangeEvent } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { AppShell } from './components/AppShell';
+import { OverviewView } from './components/OverviewView';
 import type { DashboardView, DebtLedger } from './types';
 import { loadDefaultWorkbook, parseWorkbook } from './lib/workbook';
 
@@ -72,10 +73,7 @@ export default function App() {
       <AnimatePresence mode="wait">
         <motion.div key={`${activeLedgerId}-${view}`} animate={{ opacity: 1, y: 0 }} initial={{ opacity: 0, y: 8 }} transition={{ duration: 0.32 }}>
           {activeLedger ? (
-            <div className="view-placeholder">
-              <p>{activeLedger.companyName} · {activeLedger.year} · {activeLedger.debtorName}</p>
-              <h1>{view === 'overview' ? '总览' : '欠款排行'}</h1>
-            </div>
+            view === 'overview' ? <OverviewView ledger={activeLedger} /> : <div className="view-placeholder"><p>{activeLedger.companyName} · {activeLedger.year} · {activeLedger.debtorName}</p><h1>欠款排行即将载入</h1></div>
           ) : (
             <div className="empty-state"><span className="empty-state-icon">⌁</span><h1>正在准备账本</h1><p>稍等片刻，数据会在浏览器中完成解析。</p></div>
           )}
