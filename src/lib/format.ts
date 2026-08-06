@@ -1,7 +1,8 @@
 const currencyFormatter = new Intl.NumberFormat('zh-CN', {
   style: 'currency',
   currency: 'CNY',
-  maximumFractionDigits: 2,
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 6,
 });
 
 const numberFormatter = new Intl.NumberFormat('zh-CN', { maximumFractionDigits: 2 });

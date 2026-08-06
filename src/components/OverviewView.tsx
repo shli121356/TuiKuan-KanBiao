@@ -2,7 +2,7 @@ import { AlertTriangle, ArrowDownRight, Boxes, FileSpreadsheet, Wallet } from 'l
 import { useState } from 'react';
 import type { DebtLedger } from '../types';
 import { getGroupedRows, getLedgerTotal, getProductCount, getProductTotals, getTrend, type TrendGranularity } from '../lib/analytics';
-import { formatCompactCurrency, formatCurrency, formatPercent } from '../lib/format';
+import { formatCurrency, formatPercent } from '../lib/format';
 import { AnimatedNumber } from './AnimatedNumber';
 import { DebtTable } from './DebtTable';
 import { ProductDonut } from './ProductDonut';
@@ -10,6 +10,15 @@ import { Reveal } from './Reveal';
 import { TrendChart } from './TrendChart';
 
 type OverviewViewProps = { ledger: DebtLedger };
+
+function describeSummary(label: string): string {
+  if (/月份金额/.test(label)) return '当月新增的明细欠款合计';
+  if (/加上月余欠/.test(label)) return '叠加上期未结清余额后的阶段金额';
+  if (/税点/.test(label)) return '原表记录的税点或费用调整';
+  if (/付款|汇公账/.test(label)) return '已付款或已汇款的抵扣金额';
+  if (/截至|余欠/.test(label)) return '截至指定日期的最终未结清余额';
+  return '工作表中的原始汇总金额';
+}
 
 export function OverviewView({ ledger }: OverviewViewProps) {
   const [granularity, setGranularity] = useState<TrendGranularity>('day');
@@ -25,10 +34,10 @@ export function OverviewView({ ledger }: OverviewViewProps) {
           <div className="eyebrow"><span className="eyebrow-line" />账目总览 / {ledger.sheetName}</div>
           <h1>{ledger.companyName}</h1>
           <p className="hero-subtitle">{ledger.year} 年 · 欠款人 <strong>{ledger.debtorName}</strong></p>
-          <div className="total-line"><span>当前明细总欠款</span><strong><AnimatedNumber formatter={formatCurrency} value={total} /></strong></div>
+          <div className="total-line"><span className="metric-label"><strong>当前明细合计</strong><small>仅汇总明细金额，不含历史余欠</small></span><strong><AnimatedNumber formatter={formatCurrency} value={total} /></strong></div>
           {ledger.payments !== 0 && <div className="payment-note"><ArrowDownRight size={15} />已记录付款抵扣 {formatCurrency(ledger.payments)}</div>}
         </div>
-        <div className="hero-index"><span>余额状态</span><strong>{ledger.balance === null ? '仅明细' : formatCompactCurrency(ledger.balance)}</strong><small>{ledger.balance === null ? '表格未提供余欠余额' : '表格底部余欠余额'}</small></div>
+        <div className="hero-index"><span>截至当前的最终余欠</span><strong>{ledger.balance === null ? '仅明细' : formatCurrency(ledger.balance)}</strong><small>{ledger.balance === null ? '表格未提供余欠余额' : '工作表底部原始余额，不参与明细合计'}</small></div>
       </Reveal>
 
       <Reveal className="summary-strip" delay={0.05}>
@@ -36,6 +45,18 @@ export function OverviewView({ ledger }: OverviewViewProps) {
         <div className="summary-item"><span className="summary-icon violet"><Wallet size={16} /></span><div><strong>{ledger.balance === null ? '—' : formatCurrency(ledger.balance)}</strong><span>表格余欠余额</span></div></div>
         <div className="summary-item"><span className="summary-icon mint"><ArrowDownRight size={16} /></span><div><strong>{ledger.payments === 0 ? '—' : formatCurrency(ledger.payments)}</strong><span>已记录付款抵扣</span></div></div>
         <div className="summary-item"><span className="summary-icon amber"><Boxes size={16} /></span><div><strong>{ledger.rows.length} 条 / {getProductCount(ledger)} 种</strong><span>明细 / 产品结构</span></div></div>
+      </Reveal>
+
+      <Reveal className="settlement-panel" delay={0.07}>
+        <div className="section-heading settlement-heading"><div><span className="section-kicker">Source calculation</span><h2>原表计算明细</h2></div><span className="section-caption">所有金额按工作表原值展示，未压缩、未四舍五入</span></div>
+        <div className="settlement-list">
+          {ledger.summaries.length > 0 ? ledger.summaries.map((summary, index) => (
+            <div className="settlement-row" key={`${summary.label}-${index}`}>
+              <div><strong>{summary.label}</strong><span>{describeSummary(summary.label)}</span></div>
+              <strong className={summary.amount < 0 ? 'is-negative' : ''}>{formatCurrency(summary.amount)}</strong>
+            </div>
+          )) : <div className="settlement-empty">当前工作表没有单独的底部汇总行，页面仅展示明细合计。</div>}
+        </div>
       </Reveal>
 
       {ledger.warnings.length > 0 && <Reveal className="quality-notice" delay={0.08}><AlertTriangle size={17} /><span>{ledger.warnings.join('；')}</span></Reveal>}
