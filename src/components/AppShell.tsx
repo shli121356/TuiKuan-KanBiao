@@ -52,7 +52,7 @@ export function AppShell({
             <label className="upload-button" title="导入 Excel 工作簿">
               <FileUp size={16} strokeWidth={2.2} />
               <span>导入表格</span>
-              <input accept=".xlsx,.xls,.xlsm" onChange={onUpload} type="file" />
+              <input accept=".xlsx,.xls,.xlsm" multiple onChange={onUpload} type="file" />
             </label>
             <label className="ledger-picker">
               <span className="picker-label">当前账单</span>

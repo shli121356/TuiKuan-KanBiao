@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest';
-import { parseSheetRows } from './workbook';
+import { combineParseResults, parseSheetRows } from './workbook';
 
 const rows: unknown[][] = [
   ['供货商。。。益润新材料有限公司'],
@@ -32,6 +32,21 @@ describe('parseSheetRows', () => {
 
   test('returns null for a sheet with no detail rows', () => {
     expect(parseSheetRows([['空表'], [], []], 'Sheet3', 'demo.xlsx')).toBeNull();
+  });
+
+  test('combines ledgers from multiple uploaded files without losing ignored sheets', () => {
+    const first = parseSheetRows(rows, 'Sheet1', 'first.xlsx');
+    const second = parseSheetRows(rows, 'Sheet2', 'second.xlsx');
+
+    expect(first).not.toBeNull();
+    expect(second).not.toBeNull();
+    expect(combineParseResults([
+      { ledgers: first ? [first] : [], ignoredSheets: ['Sheet3'] },
+      { ledgers: second ? [second] : [], ignoredSheets: ['Sheet2'] },
+    ])).toMatchObject({
+      ledgers: [first, second],
+      ignoredSheets: ['Sheet3', 'Sheet2'],
+    });
   });
 
 });

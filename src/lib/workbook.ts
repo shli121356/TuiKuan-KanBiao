@@ -1,4 +1,7 @@
 import * as XLSX from 'xlsx';
+import defaultWorkbookUrl from '../assets/default-workbook.xlsm?url';
+import zhuGaoyunWorkbookUrl from '../assets/ledger-zhu-gao-yun.xlsm?url';
+import zhaoWeiHuaWorkbookUrl from '../assets/ledger-zhao-wei-hua.xlsm?url';
 import type { DebtLedger, DebtRow, DebtSummary, ParseResult } from '../types';
 
 type CellValue = unknown;
@@ -172,9 +175,29 @@ export function parseWorkbook(buffer: ArrayBuffer, sourceFile: string): ParseRes
   return { ledgers, ignoredSheets };
 }
 
-export async function loadDefaultWorkbook(): Promise<ParseResult> {
-  const workbookUrl = new URL('../assets/default-workbook.xlsm', import.meta.url);
-  const response = await fetch(workbookUrl);
+export function combineParseResults(results: ParseResult[]): ParseResult {
+  return {
+    ledgers: results.flatMap((result) => result.ledgers),
+    ignoredSheets: [...new Set(results.flatMap((result) => result.ignoredSheets))],
+  };
+}
+
+const BUNDLED_WORKBOOKS = [
+  { url: defaultWorkbookUrl, sourceFile: '工作簿1.xlsx夏建强.xlsx' },
+  { url: zhuGaoyunWorkbookUrl, sourceFile: '工作簿1.xlsx朱高云.xlsx' },
+  { url: zhaoWeiHuaWorkbookUrl, sourceFile: '工作簿2.xlsx赵卫华.xlsx' },
+] as const;
+
+async function loadWorkbookAsset(url: string, sourceFile: string): Promise<ParseResult> {
+  const response = await fetch(url);
   if (!response.ok) throw new Error('默认工作簿加载失败');
-  return parseWorkbook(await response.arrayBuffer(), '工作簿1.xlsx夏建强.xlsx');
+  return parseWorkbook(await response.arrayBuffer(), sourceFile);
+}
+
+export async function loadDefaultWorkbooks(): Promise<ParseResult> {
+  return combineParseResults(await Promise.all(BUNDLED_WORKBOOKS.map((workbook) => loadWorkbookAsset(workbook.url, workbook.sourceFile))));
+}
+
+export async function loadDefaultWorkbook(): Promise<ParseResult> {
+  return loadDefaultWorkbooks();
 }

@@ -4,7 +4,7 @@ import { AppShell } from './components/AppShell';
 import { OverviewView } from './components/OverviewView';
 import { LeaderboardView } from './components/LeaderboardView';
 import type { DashboardView, DebtLedger } from './types';
-import { loadDefaultWorkbook, parseWorkbook } from './lib/workbook';
+import { combineParseResults, loadDefaultWorkbooks, parseWorkbook } from './lib/workbook';
 
 function sortLedgers(ledgers: DebtLedger[]): DebtLedger[] {
   return [...ledgers].sort((first, second) => Number(second.year) - Number(first.year));
@@ -14,18 +14,18 @@ export default function App() {
   const [ledgers, setLedgers] = useState<DebtLedger[]>([]);
   const [activeLedgerId, setActiveLedgerId] = useState('');
   const [view, setView] = useState<DashboardView>('overview');
-  const [status, setStatus] = useState('正在读取默认工作簿…');
+  const [status, setStatus] = useState('正在读取账表文件夹…');
   const [error, setError] = useState('');
 
   useEffect(() => {
     let alive = true;
-    loadDefaultWorkbook()
+    loadDefaultWorkbooks()
       .then((result) => {
         if (!alive) return;
         const sorted = sortLedgers(result.ledgers);
         setLedgers(sorted);
         setActiveLedgerId(sorted[0]?.id ?? '');
-        setStatus(result.ignoredSheets.length > 0 ? `已载入 ${sorted.length} 张账单，忽略空表 ${result.ignoredSheets.join('、')}` : `已载入 ${sorted.length} 张账单`);
+        setStatus(result.ignoredSheets.length > 0 ? `已重置并载入 ${sorted.length} 张账单，忽略空表 ${result.ignoredSheets.join('、')}` : `已重置并载入 ${sorted.length} 张账单`);
       })
       .catch((reason: unknown) => {
         if (!alive) return;
@@ -40,20 +40,20 @@ export default function App() {
   const activeLedger = useMemo(() => ledgers.find((ledger) => ledger.id === activeLedgerId) ?? null, [activeLedgerId, ledgers]);
 
   const handleUpload = async (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
+    const files = Array.from(event.target.files ?? []);
     event.target.value = '';
-    if (!file) return;
+    if (files.length === 0) return;
 
     setError('');
-    setStatus(`正在解析 ${file.name}…`);
+    setStatus(`正在解析 ${files.length} 个表格…`);
     try {
-      const result = parseWorkbook(await file.arrayBuffer(), file.name);
+      const result = combineParseResults(await Promise.all(files.map(async (file) => parseWorkbook(await file.arrayBuffer(), file.name))));
       if (result.ledgers.length === 0) throw new Error('没有找到包含有效欠款明细的 Sheet');
       const stamp = Date.now();
       const uploaded = result.ledgers.map((ledger, index) => ({ ...ledger, id: `${ledger.id}-${stamp}-${index}` }));
       setLedgers((current) => sortLedgers([...current, ...uploaded]));
       setActiveLedgerId(uploaded[0].id);
-      setStatus(result.ignoredSheets.length > 0 ? `已追加 ${uploaded.length} 张账单，忽略 ${result.ignoredSheets.join('、')}` : `已追加 ${uploaded.length} 张账单`);
+      setStatus(result.ignoredSheets.length > 0 ? `已追加 ${files.length} 个表格，共 ${uploaded.length} 张账单，忽略空表 ${result.ignoredSheets.join('、')}` : `已追加 ${files.length} 个表格，共 ${uploaded.length} 张账单`);
     } catch (reason: unknown) {
       setError(reason instanceof Error ? reason.message : '文件解析失败');
       setStatus('');
