@@ -1,6 +1,7 @@
 import type { ChangeEvent, ReactNode } from 'react';
 import { ChevronDown, FileUp, LayoutDashboard, Trophy } from 'lucide-react';
 import type { DashboardView, DebtLedger } from '../types';
+import { getStatusPresentation } from '../lib/statusPresentation';
 
 type AppShellProps = {
   ledgers: DebtLedger[];
@@ -25,6 +26,8 @@ export function AppShell({
   onUpload,
   children,
 }: AppShellProps) {
+  const statusPresentation = getStatusPresentation(status, error);
+
   return (
     <div className="app-shell">
       <header className="topbar">
@@ -54,6 +57,12 @@ export function AppShell({
               <span>导入表格</span>
               <input accept=".xlsx,.xls,.xlsm" multiple onChange={onUpload} type="file" />
             </label>
+            {statusPresentation === 'inline' && (
+              <span className="status-inline" aria-live="polite">
+                <span className="status-dot" />
+                <span>{status}</span>
+              </span>
+            )}
             <label className="ledger-picker">
               <span className="picker-label">当前账单</span>
               <span className="sr-only">选择账单</span>
@@ -71,10 +80,10 @@ export function AppShell({
       </header>
 
       <main className="page-frame">
-        {(status || error) && (
+        {statusPresentation === 'banner' && (
           <div className={`status-banner ${error ? 'is-error' : ''}`} role="status">
             <span className="status-dot" />
-            <span>{error || status}</span>
+            <span>{error}</span>
           </div>
         )}
         {children}
