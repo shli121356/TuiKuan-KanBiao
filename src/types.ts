@@ -17,6 +17,8 @@ export type DebtSummary = {
 export type DebtLedger = {
   id: string;
   sourceFile: string;
+  sourceFolder?: string;
+  sourceUrl?: string;
   sheetName: string;
   companyName: string;
   year: string;
@@ -33,4 +35,4 @@ export type ParseResult = {
   ignoredSheets: string[];
 };
 
-export type DashboardView = 'overview' | 'leaderboard';
+export type DashboardView = 'overview' | 'leaderboard' | 'uploads';

@@ -1,10 +1,9 @@
 import { AlertTriangle, ArrowDownRight, Boxes, FileSpreadsheet, Wallet } from 'lucide-react';
 import { useState } from 'react';
 import type { DebtLedger } from '../types';
-import { getGroupedRows, getLedgerTotal, getProductCount, getProductTotals, getTrend, type TrendGranularity } from '../lib/analytics';
+import { getLedgerTotal, getProductCount, getProductTotals, getTrend, type TrendGranularity } from '../lib/analytics';
 import { formatCurrency, formatPercent } from '../lib/format';
 import { AnimatedNumber } from './AnimatedNumber';
-import { DebtTable } from './DebtTable';
 import { ProductDonut } from './ProductDonut';
 import { Reveal } from './Reveal';
 import { TrendChart } from './TrendChart';
@@ -25,7 +24,6 @@ export function OverviewView({ ledger }: OverviewViewProps) {
   const total = getLedgerTotal(ledger);
   const trend = getTrend(ledger, granularity);
   const products = getProductTotals(ledger);
-  const groups = getGroupedRows(ledger);
 
   return (
     <div className="content-stack">
@@ -62,12 +60,11 @@ export function OverviewView({ ledger }: OverviewViewProps) {
       {ledger.warnings.length > 0 && <Reveal className="quality-notice" delay={0.08}><AlertTriangle size={17} /><span>{ledger.warnings.join('；')}</span></Reveal>}
 
       <div className="section-heading"><div><span className="section-kicker">Debt signals</span><h2>欠款结构</h2></div><span className="section-caption">根据明细金额重新汇总</span></div>
-      <div className="visual-grid">
-        <Reveal className="chart-panel" delay={0.1}><div className="panel-heading"><div><span className="panel-label">{granularity === 'day' ? 'DAILY TREND' : 'MONTHLY TREND'}</span><h3>{granularity === 'day' ? '日度欠款趋势' : '月度欠款趋势'}</h3></div><div className="panel-tools"><div aria-label="趋势粒度" className="chart-mode" role="group"><button className={granularity === 'day' ? 'is-active' : ''} onClick={() => setGranularity('day')} type="button">日</button><button className={granularity === 'month' ? 'is-active' : ''} onClick={() => setGranularity('month')} type="button">月</button></div><span className="panel-value">{formatPercent(total === 0 ? 0 : (trend[trend.length - 1]?.amount ?? 0) / total)} <small>最近{granularity === 'day' ? '一笔' : '月份'}占比</small></span></div></div><TrendChart data={trend} /></Reveal>
-        <Reveal className="chart-panel" delay={0.16}><div className="panel-heading"><div><span className="panel-label">PRODUCT MIX</span><h3>产品欠款构成</h3></div><span className="panel-value">{products.length} <small>产品项</small></span></div><ProductDonut data={products} /></Reveal>
+      <div className="visual-grid trend-grid">
+        <Reveal className="chart-panel" delay={0.1}><div className="panel-heading"><div><span className="panel-label">{granularity === 'day' ? 'DAILY AMOUNTS' : 'MONTHLY AMOUNTS'}</span><h3>{granularity === 'day' ? '日度欠款金额' : '月度欠款金额'}</h3></div><div className="panel-tools"><div aria-label="趋势粒度" className="chart-mode" role="group"><button className={granularity === 'day' ? 'is-active' : ''} onClick={() => setGranularity('day')} type="button">日</button><button className={granularity === 'month' ? 'is-active' : ''} onClick={() => setGranularity('month')} type="button">月</button></div><span className="panel-value">{formatPercent(total === 0 ? 0 : (trend[trend.length - 1]?.amount ?? 0) / total)} <small>最近一期占比</small></span></div></div><TrendChart data={trend} /></Reveal>
       </div>
 
-      <Reveal className="table-section" delay={0.08}><div className="section-heading table-heading"><div><span className="section-kicker">Ledger details</span><h2>明细账本</h2></div><span className="section-caption">按月份整理 · {ledger.rows.length} 条记录</span></div><DebtTable groups={groups} /></Reveal>
+      <Reveal className="chart-panel product-panel" delay={0.14}><div className="panel-heading"><div><span className="panel-label">PRODUCT MIX</span><h3>产品欠款明细</h3></div><span className="panel-value">{products.length} <small>个产品 · {ledger.rows.length} 条明细</small></span></div><p className="product-panel-caption">按欠款金额从高到低排列，展示每个产品的明细条数、数量、金额和占比。</p><ProductDonut data={products} /></Reveal>
     </div>
   );
 }

@@ -42,8 +42,8 @@ describe('debt analytics', () => {
 
   test('aggregates products and returns ranked progress values', () => {
     expect(getProductTotals(ledger)).toEqual([
-      { productName: '7001-5里皮', amount: 350, share: 350 / 524 },
-      { productName: '黑色羊文13', amount: 174, share: 174 / 524 },
+      { productName: '7001-5里皮', amount: 350, share: 350 / 524, rowCount: 2, quantity: 24 },
+      { productName: '黑色羊文13', amount: 174, share: 174 / 524, rowCount: 1, quantity: 12 },
     ]);
     expect(getRankedProducts(ledger)[0]).toMatchObject({ productName: '7001-5里皮', amount: 350, progress: 1 });
   });

@@ -2,12 +2,13 @@ import { motion } from 'framer-motion';
 import type { ReactNode } from 'react';
 
 type RevealProps = {
+  'aria-live'?: 'off' | 'polite' | 'assertive';
   children: ReactNode;
   className?: string;
   delay?: number;
 };
 
-export function Reveal({ children, className, delay = 0 }: RevealProps) {
+export function Reveal({ children, className, delay = 0, 'aria-live': ariaLive }: RevealProps) {
   return (
     <motion.div
       animate={{ opacity: 1, y: 0 }}
@@ -16,6 +17,7 @@ export function Reveal({ children, className, delay = 0 }: RevealProps) {
       transition={{ duration: 0.42, delay, ease: [0.22, 1, 0.36, 1] }}
       viewport={{ once: true, amount: 0.15 }}
       whileInView={{ opacity: 1, y: 0 }}
+      aria-live={ariaLive}
     >
       {children}
     </motion.div>

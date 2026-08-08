@@ -182,6 +182,58 @@ export function combineParseResults(results: ParseResult[]): ParseResult {
   };
 }
 
+function hashText(value: string): string {
+  let hash = 2166136261;
+  for (let index = 0; index < value.length; index += 1) {
+    hash ^= value.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+  return (hash >>> 0).toString(16);
+}
+
+function ledgerFingerprint(ledger: DebtLedger): string {
+  return JSON.stringify({
+    sourceFile: ledger.sourceFile,
+    sourceFolder: ledger.sourceFolder,
+    sheetName: ledger.sheetName,
+    companyName: ledger.companyName,
+    year: ledger.year,
+    debtorName: ledger.debtorName,
+    rows: ledger.rows.map(({ date, productName, unit, quantity, unitPrice, totalDebt }) => ({
+      date,
+      productName,
+      unit,
+      quantity,
+      unitPrice,
+      totalDebt,
+    })),
+    summaries: ledger.summaries,
+    balance: ledger.balance,
+    payments: ledger.payments,
+  });
+}
+
+export function getLedgerIdentity(ledger: DebtLedger): string {
+  return `${ledger.sourceFile}::${ledger.sheetName}::${hashText(ledgerFingerprint(ledger))}`;
+}
+
+export function appendUniqueLedgers(existing: DebtLedger[], incoming: DebtLedger[]) {
+  const known = new Set(existing.map(ledgerFingerprint));
+  const added: DebtLedger[] = [];
+
+  incoming.forEach((ledger) => {
+    const fingerprint = ledgerFingerprint(ledger);
+    if (known.has(fingerprint)) return;
+    known.add(fingerprint);
+    added.push(ledger);
+  });
+
+  return {
+    added,
+    duplicateCount: incoming.length - added.length,
+  };
+}
+
 const BUNDLED_WORKBOOKS = [
   { url: defaultWorkbookUrl, sourceFile: '工作簿1.xlsx夏建强.xlsx' },
   { url: zhuGaoyunWorkbookUrl, sourceFile: '工作簿1.xlsx朱高云.xlsx' },

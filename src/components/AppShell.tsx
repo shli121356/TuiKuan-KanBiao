@@ -1,37 +1,34 @@
-import type { ChangeEvent, ReactNode } from 'react';
-import { ChevronDown, FileUp, LayoutDashboard, Trophy } from 'lucide-react';
-import type { DashboardView, DebtLedger } from '../types';
-import { getStatusPresentation } from '../lib/statusPresentation';
+import type { ReactNode } from 'react';
+import { ArrowLeft, FolderOpen, LayoutDashboard, Trophy } from 'lucide-react';
+import type { DashboardView } from '../types';
 
 type AppShellProps = {
-  ledgers: DebtLedger[];
-  activeLedgerId: string;
+  canReturnToUploads: boolean;
   view: DashboardView;
-  status: string;
   error: string;
-  onLedgerChange: (id: string) => void;
+  onBackToUploads: () => void;
   onViewChange: (view: DashboardView) => void;
-  onUpload: (event: ChangeEvent<HTMLInputElement>) => void;
   children: ReactNode;
 };
 
 export function AppShell({
-  ledgers,
-  activeLedgerId,
+  canReturnToUploads,
   view,
-  status,
   error,
-  onLedgerChange,
+  onBackToUploads,
   onViewChange,
-  onUpload,
   children,
 }: AppShellProps) {
-  const statusPresentation = getStatusPresentation(status, error);
-
   return (
     <div className="app-shell">
       <header className="topbar">
         <div className="topbar-inner">
+          {canReturnToUploads && (
+            <button aria-label="返回上传文件" className="topbar-back-button" onClick={onBackToUploads} type="button">
+              <ArrowLeft size={16} />
+              <span>返回上传文件</span>
+            </button>
+          )}
           <div className="brand-lockup" aria-label="燃点欠款项目可视化">
             <span className="brand-mark">燃</span>
             <span className="brand-copy">
@@ -41,6 +38,10 @@ export function AppShell({
           </div>
 
           <nav className="view-switcher" aria-label="页面视图">
+            <button className={view === 'uploads' ? 'is-active' : ''} onClick={() => onViewChange('uploads')} type="button">
+              <FolderOpen size={15} strokeWidth={2.2} />
+              <span>上传文件</span>
+            </button>
             <button className={view === 'overview' ? 'is-active' : ''} onClick={() => onViewChange('overview')} type="button">
               <LayoutDashboard size={15} strokeWidth={2.2} />
               <span>总览</span>
@@ -51,37 +52,12 @@ export function AppShell({
             </button>
           </nav>
 
-          <div className="topbar-actions">
-            <label className="upload-button" title="导入 Excel 工作簿">
-              <FileUp size={16} strokeWidth={2.2} />
-              <span>导入表格</span>
-              <input accept=".xlsx,.xls,.xlsm" multiple onChange={onUpload} type="file" />
-            </label>
-            {statusPresentation === 'inline' && (
-              <span className="status-inline" aria-live="polite">
-                <span className="status-dot" />
-                <span>{status}</span>
-              </span>
-            )}
-            <label className="ledger-picker">
-              <span className="picker-label">当前账单</span>
-              <span className="sr-only">选择账单</span>
-              <select value={activeLedgerId} onChange={(event) => onLedgerChange(event.target.value)}>
-                {ledgers.map((ledger) => (
-                  <option key={ledger.id} value={ledger.id}>
-                    {ledger.year} · {ledger.debtorName} · {ledger.sheetName}
-                  </option>
-                ))}
-              </select>
-              <ChevronDown size={14} aria-hidden="true" />
-            </label>
-          </div>
         </div>
       </header>
 
       <main className="page-frame">
-        {statusPresentation === 'banner' && (
-          <div className={`status-banner ${error ? 'is-error' : ''}`} role="status">
+        {error && (
+          <div className="status-banner is-error" role="status">
             <span className="status-dot" />
             <span>{error}</span>
           </div>

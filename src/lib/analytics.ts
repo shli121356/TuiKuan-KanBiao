@@ -10,6 +10,8 @@ export type ProductTotal = {
   productName: string;
   amount: number;
   share: number;
+  rowCount: number;
+  quantity: number | null;
 };
 
 export type RankedProduct = ProductTotal & {
@@ -54,17 +56,25 @@ export function getMonthlyTrend(ledger: DebtLedger): MonthlyPoint[] {
 }
 
 export function getProductTotals(ledger: DebtLedger): ProductTotal[] {
-  const totals = new Map<string, number>();
+  const totals = new Map<string, { amount: number; rowCount: number; quantity: number; hasQuantity: boolean }>();
   ledger.rows.forEach((row) => {
-    totals.set(row.productName, (totals.get(row.productName) ?? 0) + row.totalDebt);
+    const current = totals.get(row.productName) ?? { amount: 0, rowCount: 0, quantity: 0, hasQuantity: false };
+    totals.set(row.productName, {
+      amount: current.amount + row.totalDebt,
+      rowCount: current.rowCount + 1,
+      quantity: current.quantity + (row.quantity ?? 0),
+      hasQuantity: current.hasQuantity || row.quantity !== null,
+    });
   });
 
   const ledgerTotal = getLedgerTotal(ledger);
   return [...totals.entries()]
-    .map(([productName, amount]) => ({
+    .map(([productName, value]) => ({
       productName,
-      amount,
-      share: ledgerTotal === 0 ? 0 : amount / ledgerTotal,
+      amount: value.amount,
+      share: ledgerTotal === 0 ? 0 : value.amount / ledgerTotal,
+      rowCount: value.rowCount,
+      quantity: value.hasQuantity ? value.quantity : null,
     }))
     .sort((first, second) => second.amount - first.amount);
 }
