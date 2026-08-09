@@ -57,7 +57,7 @@ export function openFilePlugin(): Plugin {
             const saved = savedFiles.get(token);
             if (!saved || saved.expiresAt > Date.now()) return;
             savedFiles.delete(token);
-            void fs.rm(saved.filePath, { force: true });
+            void fs.rm(saved.filePath, { force: true }).catch(() => undefined);
           }, FILE_TTL_MS + 1000);
           return sendJson(response, 200, { token });
         } catch (error) {
