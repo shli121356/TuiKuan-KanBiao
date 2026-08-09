@@ -1,0 +1,70 @@
+import { describe, expect, test } from 'vitest';
+import { appendUniqueLedgers, combineParseResults, getLedgerIdentity, parseSheetRows } from './workbook';
+
+const rows: unknown[][] = [
+  ['供货商。。。益润新材料有限公司'],
+  ['客户欠款...夏建强'],
+  [],
+  ['2025年'],
+  [45659, '7001-5里皮', '米', 20, 15, 300],
+  [null, '黑色羊文13', '米', 12, 14.5, 174],
+  [null, null, null, null, '1月份金额', 11252.25],
+  [null, null, '7月30号汇公账', null, null, -51300],
+  [null, null, '截至2026年7月30号余欠我方合计金额', null, null, 149661.75],
+];
+
+describe('parseSheetRows', () => {
+  test('finds metadata, carries dates, and separates detail from summaries', () => {
+    const ledger = parseSheetRows(rows, 'Sheet1', 'demo.xlsx');
+
+    expect(ledger).not.toBeNull();
+    expect(ledger?.companyName).toBe('益润新材料有限公司');
+    expect(ledger?.debtorName).toBe('夏建强');
+    expect(ledger?.year).toBe('2025');
+    expect(ledger?.rows).toHaveLength(2);
+    const parsedRows = ledger?.rows ?? [];
+    expect(parsedRows[1]?.date).toBe('2025-01-02');
+    expect((parsedRows[0]?.totalDebt ?? 0) + (parsedRows[1]?.totalDebt ?? 0)).toBe(474);
+    expect(ledger?.summaries[0]).toMatchObject({ label: '1月份金额', amount: 11252.25, month: '01' });
+    expect(ledger?.payments).toBe(-51300);
+    expect(ledger?.balance).toBe(149661.75);
+  });
+
+  test('returns null for a sheet with no detail rows', () => {
+    expect(parseSheetRows([['空表'], [], []], 'Sheet3', 'demo.xlsx')).toBeNull();
+  });
+
+  test('combines ledgers from multiple uploaded files without losing ignored sheets', () => {
+    const first = parseSheetRows(rows, 'Sheet1', 'first.xlsx');
+    const second = parseSheetRows(rows, 'Sheet2', 'second.xlsx');
+
+    expect(first).not.toBeNull();
+    expect(second).not.toBeNull();
+    expect(combineParseResults([
+      { ledgers: first ? [first] : [], ignoredSheets: ['Sheet3'] },
+      { ledgers: second ? [second] : [], ignoredSheets: ['Sheet2'] },
+    ])).toMatchObject({
+      ledgers: [first, second],
+      ignoredSheets: ['Sheet3', 'Sheet2'],
+    });
+  });
+
+  test('skips repeated imports but keeps changed workbook content', () => {
+    const first = parseSheetRows(rows, 'Sheet1', 'repeat.xlsx');
+    const changedRows = rows.map((row, index) => index === 4 ? [45659, '7001-5里皮', '米', 20, 15, 301] : row);
+    const changed = parseSheetRows(changedRows, 'Sheet1', 'repeat.xlsx');
+
+    expect(first).not.toBeNull();
+    expect(changed).not.toBeNull();
+    const firstWithStableId = { ...first!, id: getLedgerIdentity(first!) };
+    const changedWithStableId = { ...changed!, id: getLedgerIdentity(changed!) };
+    const result = appendUniqueLedgers([firstWithStableId], [firstWithStableId, changedWithStableId]);
+
+    expect(result.duplicateCount).toBe(1);
+    expect(result.added).toEqual([changedWithStableId]);
+    expect(firstWithStableId.id).toBe(getLedgerIdentity(first!));
+    expect(changedWithStableId.id).toBe(getLedgerIdentity(changed!));
+    expect(getLedgerIdentity(first!)).not.toBe(getLedgerIdentity(changed!));
+  });
+
+});

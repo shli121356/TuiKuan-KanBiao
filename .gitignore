@@ -1,0 +1,11 @@
+node_modules/
+.vite/
+.superpowers/
+*.tsbuildinfo
+public/~$*
+public/*.xlsm
+src/assets/~$*
+dist/
+vite*.log
+vite*.err
+pnpm-workspace.yaml
